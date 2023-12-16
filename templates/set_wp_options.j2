@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# wp options
+wp option update timezone_string 'Europe/Zurich' {{ wp_options }}
+wp option update default_role {{ default_role }} {{ wp_options }}
+#
+wp option update siteurl "https://{{ wp_url }}" {{ wp_options }}
+wp option update home "https://{{ wp_url }}" {{ wp_options }}

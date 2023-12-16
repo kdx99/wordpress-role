@@ -1,0 +1,47 @@
+---
+virtual_host: wordpress.example.com
+# can be identical to virtual host
+wp_url: wordpress.example.com
+title: 'My super cool blog'
+# which theme do you want to install - depend it on your distribution
+# (e.g. dnf|apt search wordpress-theme)
+themes:
+  - wordpress-theme-twentytwentythree
+protect_admin_area: false
+# allowed addresses - only if protect_admin_area set
+ipv4:
+ipv6:
+
+# customize as you like
+admin_name: admin
+admin_email: root@example.com
+# ansible-vault encrypt_string "password"
+admin_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          61653130396330623633353961666631313866326636343138643132373135353563633263316330
+          3761323832653835366665343637656531623439653761330a323631656562346136613962656535
+          34643936386631666137616363386437656134623539376238653666383436633666363365643132
+          6436653935303839320a346666363861386366643537626662366639623131613530613038393837
+# this role is not made for wordpress multisite
+wp_allow_multisite: false
+# which role does a new user get?
+default_role: subscriber
+
+db_name: wordpress
+db_user: wordpress
+db_host: localhost
+db_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          64646637346330303935333430306339666430333765613835643535313665623431646465343430
+          6134383662653164643234653537386265376535313139630a373438303033323032326536393632
+          64366237306239333638623738343463656337663538393638353936316638363065313131353638
+          3866646162353661660a383335336438343964313837386465323163393339643137376431613632
+          3464
+# leave empty when you don't want backup
+backup_dir: /var/backups/mysql
+
+# recommended minumal standards - increase if you need more resources
+# php
+memory_limit: 512M
+upload_max_filesize: 50M
+post_max_size: 50M

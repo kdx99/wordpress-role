@@ -1,0 +1,50 @@
+# /etc/apache2/conf-available/zz-${NAME}.conf
+
+<Directory /usr/share/wordpress/>
+        Options +SymLinksIfOwnerMatch
+        Require all granted
+        DirectoryIndex index.php
+
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteBase /
+        #RewriteRule ^index\.php$ - [L]
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule . /index.php [L]
+
+        RewriteCond %{HTTP:Authorization} ^(.+)$
+        RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    </IfModule>
+</Directory>
+
+{% if wp_url != virtual_host and wp_url %}
+Alias /{{ wp_url.split('/')[1] }} /usr/share/wordpress
+Alias /{{ wp_url.split('/')[1] }}/wp-content /var/lib/wordpress/wp-content
+{% else %}
+Alias /wp-content /var/lib/wordpress/wp-content
+{% endif %}
+
+<Directory /var/lib/wordpress/wp-content>
+        Options SymLinksIfOwnerMatch
+        Require all granted
+</Directory>
+
+{% if protect_admin_area is true %}
+<Location /wp-admin>
+        <RequireAny>
+				{% if ipv4 %}
+                Require ip {{ ipv4 }}
+				{% endif %}
+				{% if ipv6 %}
+                Require ip {{ ipv6 }}
+				{% endif %}
+        </RequireAny>
+</Location>
+{% endif %}
+
+<IfModule mod_ssl.c>
+        <IfModule mod_headers.c>
+                Header always set Content-Security-Policy "default-src 'self' data: https: *.{{ virtual_host.split('.')[-2]}}.{{ virtual_host.split('.')[-1]}};script-src 'self' 'unsafe-inline' 'unsafe-eval';style-src 'self' 'unsafe-inline';img-src 'self' data: https:;object-src 'self' data:;"
+        </IfModule>
+</IfModule>

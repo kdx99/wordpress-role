@@ -1,0 +1,8 @@
+#!/bin/sh
+
+##### {{ ansible_managed }} ######
+
+curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+chmod +x wp-cli.phar
+mv wp-cli.phar /usr/local/sbin/wp
+wget -qO /etc/profile.d/wp-completion.sh https://raw.githubusercontent.com/wp-cli/wp-cli/master/utils/wp-completion.bash

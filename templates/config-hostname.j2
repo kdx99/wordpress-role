@@ -1,0 +1,22 @@
+<?php
+
+/* Only for debugging purposes - use with care */
+/* define( 'WP_DEBUG', true); */
+
+if (!defined('WP_ALLOW_MULTISITE'))
+    define('WP_ALLOW_MULTISITE', {{ wp_allow_multisite }});
+if (!defined('DB_NAME'))
+    define('DB_NAME', '{{ db_name }}');
+if (!defined('DB_USER'))
+    define('DB_USER', '{{ db_user }}');
+if (!defined('DB_HOST'))
+    define('DB_HOST', '{{ db_host }}');
+if (!defined('DB_PASSWORD'))
+    define( 'DB_PASSWORD', '{{ db_password }}' );
+
+if (!defined('FS_METHOD'))
+    define('FS_METHOD', 'direct');
+if (!defined('WP_AUTO_UPDATE_CORE'))
+    define('WP_AUTO_UPDATE_CORE', false);
+
+

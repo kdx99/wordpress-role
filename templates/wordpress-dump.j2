@@ -1,0 +1,1 @@
+1 1 * * * root mysqldump {{ db_name }} | gzip > {{ backup_dir }}/{{ db_name }}-$(date +\%Y-\%m-\%d).sql.gz

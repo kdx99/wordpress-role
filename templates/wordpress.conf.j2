@@ -1,0 +1,13 @@
+<VirtualHost {{ virtual_host }}:80>
+        Define NAME     {{ virtual_host }}
+        Define EMAIL    {{ admin_email }}
+
+        ServerAdmin ${EMAIL}
+        ServerName ${NAME}
+
+        Include /etc/apache2/conf-available/rewrite-http-to-https.conf
+
+        CustomLog ${APACHE_LOG_DIR}/wordpress-access.log combined
+        ErrorLog ${APACHE_LOG_DIR}/wordpress-error.log
+</VirtualHost>
+

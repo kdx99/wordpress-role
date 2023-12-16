@@ -1,0 +1,26 @@
+<VirtualHost *:443>
+        Define NAME     {{ virtual_host }}
+        Define EMAIL    {{ admin_email }}
+
+        ServerAdmin ${EMAIL}
+        ServerName ${NAME}
+
+        <IfModule mod_ssl.c>
+          <IfFile /var/lib/dehydrated/certs/{{ virtual_host }}/cert.pem>
+                SSLEngine on
+
+                SSLCertificateFile      /var/lib/dehydrated/certs/{{ virtual_host }}/cert.pem
+                SSLCertificateKeyFile   /var/lib/dehydrated/certs/{{ virtual_host }}/privkey.pem
+                SSLCertificateChainFile /var/lib/dehydrated/certs/{{ virtual_host }}/chain.pem
+                SSLCACertificateFile    /var/lib/dehydrated/certs/{{ virtual_host }}/fullchain.pem
+          </IfFile>
+        </IfModule>
+
+        SSLOpenSSLConfCmd DHParameters /etc/crypto/tls/dhparam_4096.pem
+
+        DocumentRoot /usr/share/wordpress
+
+        CustomLog ${APACHE_LOG_DIR}/wordpress-ssl-access.log combined
+        ErrorLog ${APACHE_LOG_DIR}/wordpress-ssl-error.log
+</VirtualHost>
+

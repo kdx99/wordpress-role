@@ -1,0 +1,11 @@
+# /etc/apache2/conf-available/rewrite-http-to-https.conf
+
+<IfModule mod_ssl.c>
+	<IfModule mod_rewrite.c>
+                RewriteEngine On
+
+                RewriteRule ^/.well-known/acme-challenge - [L,NC]
+                RewriteRule (.*) https://%{HTTP_HOST}$1 [R,L]
+	</IfModule>
+</IfModule>
+

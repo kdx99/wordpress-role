@@ -1,0 +1,67 @@
+---
+- name: check_dhparam
+  stat:
+    path: /etc/crypto/tls/dhparam_4096.pem
+  register: dhparam
+
+- name: dhparam
+  file:
+    path: /etc/crypto/tls/
+    # perms?
+    state: directory
+
+- name: rollout_dhparam
+  template:
+    src: templates/dhparam_4096.pem.j2
+    dest: /etc/crypto/tls/dhparam_4096.pem
+  when: dhparam.stat.exists is false
+
+- name: check_rewrite_file
+  stat:
+    path: /etc/apache2/conf-available/rewrite-http-to-https.conf
+  register: http_to_https
+
+- name: rewrite_http
+  template:
+    src: templates/rewrite-http-to-https.conf.j2
+    dest: /etc/apache2/conf-available/rewrite-http-to-https.conf
+  when: http_to_https.exists is false
+
+- name: wordpress_conf
+  template:
+    src: templates/zz-wordpress.conf.j2
+    dest: /etc/apache2/conf-available/zz-wordpress.conf
+
+- name: vhost_config
+  template:
+    src: templates/wordpress.conf.j2
+    dest: /etc/apache2/sites-available/wordpress.conf
+  when: wp_url == virtual_host
+
+- name: vhost_config_ssl
+  template:
+    src: templates/wordpress-ssl.conf.j2
+    dest: /etc/apache2/sites-available/wordpress-ssl.conf
+  when: wp_url == virtual_host
+
+- name: mod_enable
+  command: a2enmod "{{ item }}"
+  loop:
+    - proxy_fcgi
+
+- name: conf_enable
+  command: a2enconf "{{ item }}"
+  loop:
+    - "zz-wordpress"
+    - "php{{ php_version }}-fpm"
+
+- name: disable_mpm_prefork
+  command: a2dismod mpm_prefork
+- name: enable_mpm_event
+  command: a2enmod mpm_event
+
+- name: site_enable
+  command: a2ensite "{{ item }}"
+  loop:
+    - wordpress
+    - wordpress-ssl

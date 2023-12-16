@@ -1,0 +1,139 @@
+---
+- name: install
+  package:
+    name: "{{ item }}"
+    state: present
+  tags: install
+  loop:
+    - wget
+    - apache2
+    - dehydrated-apache2
+    - mariadb-server
+    - mariadb-client
+    - python3-mysqldb
+    - wordpress
+    - "{{ themes }}"
+
+- name: dehydrated
+  lineinfile:
+    path: /etc/dehydrated/domains.txt
+    line: "{{ virtual_host }}"
+
+- name: check_registered
+  stat:
+    path: "/var/lib/dehydrated/certs/{{ virtual_host }}"
+  register: domain_registered
+
+- name: debug
+  debug:
+    msg: "{{ domain_registered.stat.exists }}"
+
+- name: deh_register
+  command: dehydrated --register --accept-terms
+  when: domain_registered.stat.exists is false
+- name: dehydrated_create
+  command: dehydrated -c
+
+- name: copy_config
+  ansible.builtin.template:
+    src: templates/config-hostname.j2
+    dest: /etc/wordpress/config-{{ virtual_host }}.php
+    owner: www-data
+    group: www-data
+    mode: 0640
+
+- name: get_php_version
+  shell: php -v | awk '/^PHP/ { print $2 }' | awk -F. '{ print $1 "." $2 }'
+  register: php_ver
+- name: set_php_version
+  set_fact:
+    php_version: "{{ php_ver.stdout }}"
+
+# wordpress should run with php-fpm, not apache-php
+- name: php_fpm
+  ansible.builtin.template:
+    src: templates/wordpress.ini.j2
+    dest: "/etc/php/{{ php_version }}/mods-available/wordpress.ini"
+- name: php_enable
+  shell: phpenmod wordpress
+- name: php_disable
+  shell: a2dismod "php{{ php_version }}"
+
+- name: apache
+  include_tasks:
+    file: apache.yaml
+
+- name: create_database
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    login_unix_socket: /run/mysqld/mysqld.sock
+    state: present
+- name: create_user
+  community.mysql.mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    login_unix_socket: /run/mysqld/mysqld.sock
+    priv: '{{ db_name }}.*:SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER'
+
+- name: mysql_backup_dir
+  file:
+    path: "{{ backup_dir }}"
+    state: directory
+  when: backup_dir is defined and backup_dir != None
+- name: mysql_backup_job
+  ansible.builtin.template:
+    src: templates/wordpress-dump.j2
+    dest: /etc/cron.d/wordpress-dump
+  when: backup_dir is defined and backup_dir != None
+
+- name: wpcli
+  ansible.builtin.template:
+    src: templates/install_wpcli.j2
+    dest: /usr/local/sbin/install_wpcli
+    mode: 0554
+- name: wpcli_install
+  command: /usr/local/sbin/install_wpcli
+
+- name: wp_command_params
+  set_fact:
+    wp_options: --allow-root --url="{{ virtual_host }}" --path=/usr/share/wordpress
+- name: set_title
+  set_fact:
+    title: "{{ virtual_host }}"
+  when: not title
+
+- name: check_ifconfig
+  stat:
+    path: /usr/share/wordpress/wp-config.php
+  register: wp_default_config
+- name: config_there
+  stat:
+    path: "/etc/wordpress/config-{{ virtual_host }}.php"
+  register: wp_config
+
+- name: config
+  command: wp config create --path=/usr/share/wordpress --allow-root --dbname="{{ db_name }}" --dbuser="{{ db_user }}" --dbpass="{{ db_password }}"
+  when: wp_default_config.exists is false
+- name: wp_install
+  command: "wp core install {{ wp_options }} --title='{{ title }}' --admin_user={{ admin_name }} --admin_password={{ admin_password }} --admin_email={{ admin_email }}"
+#  when: wp_config.exists is false
+
+- name: wp_options
+  ansible.builtin.template:
+    src: templates/set_wp_options.j2
+    dest: /usr/local/sbin/set_wp_options
+    mode: 0755
+- name: set_options
+  command: /usr/local/sbin/set_wp_options
+
+- name: upload_perms
+  file:
+    path: /var/lib/wordpress/wp-plugin/uploads
+    owner: www-data
+    group: www-data
+- name: file_perms
+  file:
+    path: /var/lib/wordpress/wp-content/uploads
+    owner: www-data
+    group: www-data
+    recurse: yes
